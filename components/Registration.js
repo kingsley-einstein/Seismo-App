@@ -1,10 +1,19 @@
 import React, { Component } from 'react';
 import axios from 'axios';
-import { FormGroup, Input, Button, FormControl, FormControlLabel } from '@material-ui/core';
+import emailRegex from 'email-regex';
+import { 
+  FormGroup, 
+  Input, 
+  Button, 
+  FormControl, 
+  FormControlLabel, 
+  Card
+} from '@material-ui/core';
 
 const styles = {
   divMargin: {
-    marginTop: '0.5em',
+    marginTop: '1.5em',
+    marginBottom: '1.5em',
     display: 'flex',
     flexDirection: 'row',
     justifyContent: 'center',
@@ -20,10 +29,54 @@ const styles = {
 export default class Registration extends Component {
   constructor(props) {
     super(props);
+    const that = this;
     this.state = {
-      phoneNumber: '',
-      password: '',
-      email: ''
+      phoneNumber: null,
+      password: null,
+      email: null,
+      invalid: true,
+      errors: {
+        email: {
+          messages: [],
+          checkErrors(value) {
+            const { errors } = that.state;
+            const { email } = errors;
+            email.messages = [];
+            that.setState({
+              errors,
+              invalid: false
+            });
+            const splitByAmpersand = value.split('@');
+            const leftSideIsNotShort = splitByAmpersand[0].length > 4;
+            const isValid = emailRegex().test(value);
+            const notValidMessage = 'Email is not valid';
+            const tooShortMessage = 'Email is too short';
+            if (!isValid) {
+              email.messages.push(notValidMessage);
+              that.setState({
+                errors,
+                invalid: true
+              });
+            }
+            if (!leftSideIsNotShort) {
+              email.messages.push(tooShortMessage);
+              that.setState({
+                errors,
+                invalid: true
+              });
+            }
+          }
+        },
+        phoneNumber: {
+          messages: [],
+          checkErrors(value) {
+
+          }
+        },
+        password: {
+          messages: []
+        }
+      }
     };
   }
   componentDidMount() {
@@ -31,36 +84,27 @@ export default class Registration extends Component {
   }
   register() {
   }
+  handleErrors = (event) => {
+    const { errors } = this.state;
+    const item = errors[event.target.name];
+    if (item.checkErrors) {
+      item.checkErrors(event.target.value);
+    }
+  }
   handleChange = (event) => {
     this.state[event.target.name] = event.target.value;
-    console.log(this.state);
+    this.handleErrors(event);
   }
   render() {
-    const { email, password, phoneNumber } = this.state;
-    const splitEmailByAmpersand = email.split('@')
-    const splitEmailByDotCom = email.split('.com');
-    const emailHasMoreThanOneAmpersand = splitEmailByAmpersand.length > 2;
-    const emailHasMoreThanOneDotCom = splitEmailByDotCom.length > 2;
-    const firstItemInEmailIsShort = splitEmailByAmpersand[0].length < 4;
-    const errors = {
-      email: {
-        isInvalid: email.indexOf('@') === -1 || 
-        email.indexOf('.com') === -1 || 
-        emailHasMoreThanOneAmpersand || 
-        emailHasMoreThanOneDotCom || 
-        firstItemInEmailIsShort,
-        messages: ['Error']
-      }
-    };
+    const { state } = this;
+    const { errors: { email }, invalid } = state
     return <div>
+      <Card raised>
       <FormControl component="div" style={styles.divMargin}>
         <FormGroup>
           <FormControlLabel control={
             <div>
               <Input type="text" name="phoneNumber" onChange={this.handleChange} style={styles.inputStyles} placeholder="Enter Phone Number"/>
-              {errors.email.isInvalid && errors.email.messages.map((value) => {
-                return <div>{value}</div>
-              })}
             </div>
           }
           />
@@ -69,7 +113,12 @@ export default class Registration extends Component {
       <FormControl component="div" style={styles.divMargin}>
         <FormGroup>
           <FormControlLabel control={
-            <Input type="email" name="email" onChange={this.handleChange} style={styles.inputStyles} placeholder="Enter Email" />
+            <div>
+             <Input type="email" name="email" onChange={this.handleChange} style={styles.inputStyles} placeholder="Enter Email" />
+             {email.messages.length > 0 && email.messages.map((value, index) => {
+               return (<div key={index}>{value}</div>);
+             })}
+            </div>
           } />
         </FormGroup>
       </FormControl>
@@ -80,6 +129,14 @@ export default class Registration extends Component {
           } />
         </FormGroup>
       </FormControl>
+      <FormControl component="div" style={styles.divMargin}>
+        <FormGroup>
+          <FormControlLabel control={
+            <Button disabled={invalid} size="medium" variant="contained" color="primary" onClick={() => console.log(state)}>Sign Up</Button>
+          }></FormControlLabel>
+        </FormGroup>
+      </FormControl>
+      </Card>
     </div>
   }
 }
